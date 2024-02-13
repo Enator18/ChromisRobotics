@@ -6,7 +6,12 @@ import time
 from adafruit_pca9685 import PCA9685
 import busio
 from board import SCL, SDA
+from gpiozero import Motor
 import math
+
+arm_roll_motor = Motor(1, 7)
+arm_pitch_motor = Motor(8, 25)
+
 i2c_bus = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c_bus)
 pca.frequency = 50
@@ -24,6 +29,8 @@ def send():
     os.system('clear')
     all_args = flask.request.args.to_dict()
     time.sleep(0.1)
+
+    #Controller 1
     joy1x = 0
     joy1y = 0
     joy2x = 0
@@ -32,30 +39,33 @@ def send():
     bumper_left = False
     bumper_right = False
 
+    #Controller 2
+    bumper_2_left = False
+    bumper_2_right = False
+
     for arg in all_args:
         #print all the keys then : then the values
         print(arg,":",all_args[arg])
 
-        if arg == "axis-0-0": #Left joystick X axis
+        if arg == "axis-0-0": #C1 Left joystick X axis
             joy1x = round(float(all_args[arg]), 3)
-        if arg == "axis-1-0": #Left joystick Y axis
+        if arg == "axis-1-0": #C1 Left joystick Y axis
             joy1y = round(float(all_args[arg]), 3)
-        if arg == "axis-2-0": #Right joystick y axis
+        if arg == "axis-2-0": #C1 Right joystick y axis
             joy2x = round(float(all_args[arg]), 3)
-        if arg == "axis-3-0": #Right joystick y axis
+        if arg == "axis-3-0": #C1 Right joystick y axis
             joy2y = round(float(all_args[arg]), 3)
-        if arg == "axis-5-0": #Right trigger
+        if arg == "axis-5-0": #C1 Right trigger
             trigger = round(float(all_args[arg]), 3)
-        if arg == "button-4-0": #Left bumper
-            if all_args[arg] == "True":
-                bumper_left = True
-            else:
-                bumper_left = False
-        if arg == "button-5-0": #Right bumper
-            if all_args[arg] == "True":
-                bumper_right = True
-            else:
-                bumper_right = False
+        if arg == "button-4-0": #C1 Left bumper
+            bumper_left = (all_args[arg] == "True")
+        if arg == "button-5-0": #C1 Right bumper
+            bumper_right = (all_args[arg] == "True")
+        if arg == "button-4-1": #C2 Left bumper
+            bumper_2_left = (all_args[arg] == "True")
+        if arg == "button-5-1": #C2 Right bumper
+            bumper_2_right = (all_args[arg] == "True")
+        
     joy1x,joy1y = deadzone(joy1x,joy1y,0.1)
     joy2x,joy2y = deadzone(joy2x,joy2y,0.1)
     #must return something, doesn't really matter what
@@ -75,6 +85,14 @@ def send():
     set_thruster_speed(1, thrust_right)
     set_thruster_speed(2, thrust_up)
     set_thruster_speed(3, thrust_up)
+
+    if bumper_2_left:
+        arm_roll_motor.forward()
+    elif bumper_2_right:
+        arm_roll_motor.backward()
+    else:
+        arm_roll_motor.stop()
+
     return all_args
 def deadzone(x,y,length):
     dist = math.sqrt((x*x) + (y*y))
