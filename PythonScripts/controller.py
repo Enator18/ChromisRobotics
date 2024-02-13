@@ -31,6 +31,13 @@ if __name__ == "__main__":
     except:
         print("NO JOYSTICK")
         joy = {}
+    try:
+        joy2 = ctrl.Joystick(1)
+        joy2.init()
+    except:
+        print("ONLY ONE JOYSTICK")
+        joy2 = {}
+    
     running = True
     #IP of raspberry pi DO NOT FORGET
     rovIP = "192.168.1.20"
@@ -100,13 +107,13 @@ if __name__ == "__main__":
                 pygame.quit()
                 exit()
             elif event.type == pygame.JOYBUTTONDOWN:
-                config["button-"+str(event.button)] = True
+                config["button-"+str(event.button)+"-"+str(event.instance_id)] = True
             elif event.type == pygame.JOYBUTTONUP:
-                config["button-"+str(event.button)] = False
+                config["button-"+str(event.button)+"-"+str(event.instance_id)] = False
             elif event.type == pygame.JOYAXISMOTION:
-                config["axis-"+str(event.axis)] = event.value
+                config["axis-"+str(event.axis)+"-"+str(event.instance_id)] = event.value
             elif event.type == pygame.JOYHATMOTION:
-                config["hat-"+str(event.hat)] = event.value
+                config["hat-"+str(event.hat)+"-"+str(event.instance_id)] = event.value
         if config != config_old:
             config = sort_dict(config)
             send_signals()

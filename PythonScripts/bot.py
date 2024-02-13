@@ -36,22 +36,22 @@ def send():
         #print all the keys then : then the values
         print(arg,":",all_args[arg])
 
-        if arg == "axis-0": #Left joystick X axis
+        if arg == "axis-0-0": #Left joystick X axis
             joy1x = round(float(all_args[arg]), 3)
-        if arg == "axis-1": #Left joystick Y axis
+        if arg == "axis-1-0": #Left joystick Y axis
             joy1y = round(float(all_args[arg]), 3)
-        if arg == "axis-2": #Right joystick y axis
+        if arg == "axis-2-0": #Right joystick y axis
             joy2x = round(float(all_args[arg]), 3)
-        if arg == "axis-3": #Right joystick y axis
+        if arg == "axis-3-0": #Right joystick y axis
             joy2y = round(float(all_args[arg]), 3)
-        if arg == "axis-5": #Right trigger
+        if arg == "axis-5-0": #Right trigger
             trigger = round(float(all_args[arg]), 3)
-        if arg == "button-4": #Left bumper
+        if arg == "button-4-0": #Left bumper
             if all_args[arg] == "True":
                 bumper_left = True
             else:
                 bumper_left = False
-        if arg == "button-5": #Right bumper
+        if arg == "button-5-0": #Right bumper
             if all_args[arg] == "True":
                 bumper_right = True
             else:
