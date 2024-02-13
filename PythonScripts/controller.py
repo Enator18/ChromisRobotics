@@ -21,7 +21,8 @@ if __name__ == "__main__":
     clock = pygame.time.Clock()
     wifi = True
 
-
+    #Which controller does what
+    bindings = [-1, -1]
 
 
     ctrl.init()
@@ -29,15 +30,15 @@ if __name__ == "__main__":
         joy = ctrl.Joystick(0)
         joy.init()
     except:
-        print("NO JOYSTICK")
+        print("NO CONTROLLER")
         joy = {}
     try:
         joy2 = ctrl.Joystick(1)
         joy2.init()
     except:
-        print("ONLY ONE JOYSTICK")
+        print("ONLY ONE CONTROLLER")
         joy2 = {}
-    
+
     running = True
     #IP of raspberry pi DO NOT FORGET
     rovIP = "192.168.1.20"
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     }
     config = {}
     config_old = {}
+    
     def sort_dict(dictionary):
         keys = [key for key in dictionary.keys()]
         if len(keys) > 0:
@@ -102,18 +104,29 @@ if __name__ == "__main__":
         screen.fill(chromis_teal)
         pygame.display.flip()
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                pygame.quit()
-                exit()
-            elif event.type == pygame.JOYBUTTONDOWN:
-                config["button-"+str(event.button)+"-"+str(event.instance_id)] = True
-            elif event.type == pygame.JOYBUTTONUP:
-                config["button-"+str(event.button)+"-"+str(event.instance_id)] = False
-            elif event.type == pygame.JOYAXISMOTION:
-                config["axis-"+str(event.axis)+"-"+str(event.instance_id)] = event.value
-            elif event.type == pygame.JOYHATMOTION:
-                config["hat-"+str(event.hat)+"-"+str(event.instance_id)] = event.value
+            if event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
+                if bindings[event.instance_id] == -1:
+                    if event.type == pygame.JOYBUTTONDOWN:
+                        if event.button == 6:
+                            bindings[event.instance_id] = 0
+                        elif event.button == 7:
+                            bindings[event.instance_id] = 1
+                else:
+                    gamepad_id = bindings[event.instance_id]
+                
+                    if event.type == pygame.JOYBUTTONDOWN:
+                        config["button-"+str(event.button)+"-"+str(gamepad_id)] = True
+                    elif event.type == pygame.JOYBUTTONUP:
+                        config["button-"+str(event.button)+"-"+str(gamepad_id)] = False
+                    elif event.type == pygame.JOYAXISMOTION:
+                        config["axis-"+str(event.axis)+"-"+str(gamepad_id)] = event.value
+                    elif event.type == pygame.JOYHATMOTION:
+                        config["hat-"+str(event.hat)+"-"+str(gamepad_id)] = event.value
+
+            elif event.type == pygame.QUIT:
+                    running = False
+                    pygame.quit()
+                    exit()
         if config != config_old:
             config = sort_dict(config)
             send_signals()
