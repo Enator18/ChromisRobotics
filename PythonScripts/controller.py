@@ -29,15 +29,15 @@ if __name__ == "__main__":
     try:
         joy = ctrl.Joystick(0)
         joy.init()
+	try:
+        	joy2 = ctrl.Joystick(1)
+        	joy2.init()
+    	except:
+        	print("ONLY ONE CONTROLLER")
+        joy2 = {}
     except:
         print("NO CONTROLLER")
         joy = {}
-    try:
-        joy2 = ctrl.Joystick(1)
-        joy2.init()
-    except:
-        print("ONLY ONE CONTROLLER")
-        joy2 = {}
 
     running = True
     #IP of raspberry pi DO NOT FORGET
