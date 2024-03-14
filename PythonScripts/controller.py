@@ -19,7 +19,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("ROV Control")
     pygame.display.init()
     clock = pygame.time.Clock()
-    wifi = True
+    wifi = False
 
     #Which controller does what
     bindings = [-1, -1]
@@ -29,12 +29,14 @@ if __name__ == "__main__":
     try:
         joy = ctrl.Joystick(0)
         joy.init()
-	try:
-        	joy2 = ctrl.Joystick(1)
-        	joy2.init()
-    	except:
-        	print("ONLY ONE CONTROLLER")
-        joy2 = {}
+        print("Detected controller 1: "+ str(joy.get_name()))
+        try:
+            joy2 = ctrl.Joystick(1)
+            joy2.init()
+            print("Detected controller 2: "+str(joy2.get_name()))
+        except:
+            print("ONLY ONE CONTROLLER")
+            joy2 = {}
     except:
         print("NO CONTROLLER")
         joy = {}

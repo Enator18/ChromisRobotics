@@ -9,8 +9,8 @@ from board import SCL, SDA
 from gpiozero import Motor
 import math
 
-arm_roll_motor = Motor(1, 7)
-arm_pitch_motor = Motor(8, 25)
+arm_pitch_motor = Motor(17, 27)
+arm_roll_motor = Motor(12, 13, pwm = True)
 
 i2c_bus = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c_bus)
@@ -42,6 +42,7 @@ def send():
     #Controller 2
     bumper_2_left = False
     bumper_2_right = False
+    c2joy1y = 0.0
 
     for arg in all_args:
         #print all the keys then : then the values
@@ -57,6 +58,8 @@ def send():
             joy2y = round(float(all_args[arg]), 3)
         if arg == "axis-5-0": #C1 Right trigger
             trigger = round(float(all_args[arg]), 3)
+        if arg == "axis-1-1": #C2 Left Joystick, y axis
+            c2joy1y = round(float(all_args[arg]), 3)
         if arg == "button-4-0": #C1 Left bumper
             bumper_left = (all_args[arg] == "True")
         if arg == "button-5-0": #C1 Right bumper
@@ -87,11 +90,18 @@ def send():
     set_thruster_speed(3, thrust_up)
 
     if bumper_2_left:
-        arm_roll_motor.forward()
-    elif bumper_2_right:
         arm_roll_motor.backward()
+    elif bumper_2_right:
+        arm_roll_motor.forward()
     else:
         arm_roll_motor.stop()
+
+    if c2joy1y > 0.1:
+        arm_pitch_motor.forward(c2joy1y)
+    elif c2joy1y < 0.1:
+        arm_pitch_motor.backward(abs(c2joy1y))
+    else:
+        arm_pitch_motor.stop()
 
     return all_args
 def deadzone(x,y,length):
