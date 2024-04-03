@@ -131,10 +131,10 @@ def send():
     
     #Open/Close Hand
     if trigger_2_left > -1:
-        move_servo(4, -30 * ((trigger_2_left * 0.5) + 0.5), delta)
+        move_servo(4, -30 * ((trigger_2_left * 0.5) + 0.5), 0, 180, delta)
 
     if trigger_2_right > -1:
-        move_servo(4, 30 * ((trigger_2_left * 0.5) + 0.5), delta)
+        move_servo(4, 30 * ((trigger_2_left * 0.5) + 0.5), 0, 180, delta)
 
     return all_args
 def deadzone(x,y,length):
