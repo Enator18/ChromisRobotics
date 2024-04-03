@@ -35,8 +35,8 @@ if __name__ == "__main__":
             joy2.init()
             print("Detected controller 2: "+str(joy2))
         except:
-        	print("ONLY ONE CONTROLLER")
-        joy2 = {}
+            print("ONLY ONE CONTROLLER")
+            joy2 = {}
     except:
         print("NO CONTROLLER")
         joy = {}
@@ -117,6 +117,11 @@ if __name__ == "__main__":
                     gamepad_id = bindings[event.instance_id]
                 
                     if event.type == pygame.JOYBUTTONDOWN:
+                        if event.button == 6:
+                            bindings[event.instance_id] = 0
+                        elif event.button == 7:
+                            bindings[event.instance_id] = 1
+                        gamepad_id = bindings[event.instance_id]
                         config["button-"+str(event.button)+"-"+str(gamepad_id)] = True
                     elif event.type == pygame.JOYBUTTONUP:
                         config["button-"+str(event.button)+"-"+str(gamepad_id)] = False

@@ -8,6 +8,8 @@ import busio
 from board import SCL, SDA
 from gpiozero import Motor
 import math
+from adafruit_servokit import ServoKit
+kit = ServoKit(channels=16)
 
 arm_pitch_motor = Motor(17, 27)
 arm_roll_motor = Motor(12, 13, pwm = True)
@@ -18,6 +20,9 @@ pca.frequency = 50
 
 drive_speed = 25
 
+old_time = -1
+new_time = 0
+
 
 app = flask.Flask("RobotServer")
 @app.route("/")
@@ -25,6 +30,15 @@ app = flask.Flask("RobotServer")
 # gpio.setup(37,)
 
 def send():
+    new_time = time.time()
+    delta = new_time - old_time
+
+    if old_time == -1:
+        delta = 0
+
+    old_time = new_time
+
+
     #turn the url queries into a dictionary
     os.system('clear')
     all_args = flask.request.args.to_dict()
@@ -42,6 +56,8 @@ def send():
     #Controller 2
     bumper_2_left = False
     bumper_2_right = False
+    trigger_2_left = 0.0
+    trigger_2_right = 0.0
     c2joy1y = 0.0
 
     for arg in all_args:
@@ -60,6 +76,10 @@ def send():
             trigger = round(float(all_args[arg]), 3)
         if arg == "axis-1-1": #C2 Left Joystick, y axis
             c2joy1y = round(float(all_args[arg]), 3)
+        if arg == "axis-2-1":
+            trigger_2_left = round(float(all_args[arg]), 3)
+        if arg == "axis-5-1":
+            trigger_2_right = round(float(all_args[arg]), 3)
         if arg == "button-4-0": #C1 Left bumper
             bumper_left = (all_args[arg] == "True")
         if arg == "button-5-0": #C1 Right bumper
@@ -69,6 +89,8 @@ def send():
         if arg == "button-5-1": #C2 Right bumper
             bumper_2_right = (all_args[arg] == "True")
         
+    #Organize inputs
+    #Trick with tuples: a,b = value to set for a, value to set for b
     joy1x,joy1y = deadzone(joy1x,joy1y,0.1)
     joy2x,joy2y = deadzone(joy2x,joy2y,0.1)
     #must return something, doesn't really matter what
@@ -77,18 +99,20 @@ def send():
         drive_percent = 5
     if bumper_right:
         drive_percent = 60
-	
+    
     thrust_left = min(1, max(-1, joy1y + joy1x)) * drive_percent
     thrust_right = min(1, max(-1, joy1y - joy1x)) * drive_percent
     thrust_up = joy2y * drive_speed
 
     #print(str(joy1x) + ", " + str(joy1y))
 
+    #Drive thrusters
     set_thruster_speed(0, thrust_left)
     set_thruster_speed(1, thrust_right)
     set_thruster_speed(2, thrust_up)
     set_thruster_speed(3, thrust_up)
 
+    #Tilt arm
     if bumper_2_left:
         arm_roll_motor.backward()
     elif bumper_2_right:
@@ -96,12 +120,21 @@ def send():
     else:
         arm_roll_motor.stop()
 
+    #Pitch arm
     if c2joy1y > 0.1:
         arm_pitch_motor.forward(c2joy1y)
     elif c2joy1y < 0.1:
         arm_pitch_motor.backward(abs(c2joy1y))
     else:
         arm_pitch_motor.stop()
+
+    
+    #Open/Close Hand
+    if trigger_2_left > -1:
+        move_servo(4, -30 * ((trigger_2_left * 0.5) + 0.5), delta)
+
+    if trigger_2_right > -1:
+        move_servo(4, 30 * ((trigger_2_left * 0.5) + 0.5), delta)
 
     return all_args
 def deadzone(x,y,length):
@@ -115,6 +148,10 @@ def deadzone(x,y,length):
 def set_thruster_speed(thruster, speed):
     capped_speed = min(100, max(-100, speed)) * -1
     pca.channels[thruster].duty_cycle = int((13.107 * capped_speed) + 4915.125)
+
+def move_servo(channel, value, low, high, delta):
+    clamped = min(high, max(kit.servo[channel].angle + (value * delta), low))
+    kit.servo[channel].angle = clamped
 
 
 
