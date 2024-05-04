@@ -11,17 +11,23 @@ import math
 from adafruit_servokit import ServoKit
 kit = ServoKit(channels=16)
 
-arm_pitch_motor = Motor(17, 27)
-arm_roll_motor = Motor(12, 13, pwm = True)
+arm_roll_motor = Motor(17, 27)
+arm_pitch_motor = Motor(12, 13, pwm = True)
 
 i2c_bus = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c_bus)
 pca.frequency = 50
 
 drive_speed = 25
+hand_speed = 30
+open_angle = 95 #Engineers - FIX THIS
+closed_angle = 60
+semi_angle = 80
+servo_channel = 6
+
+global old_time
 
 old_time = -1
-new_time = 0
 
 
 app = flask.Flask("RobotServer")
@@ -30,6 +36,8 @@ app = flask.Flask("RobotServer")
 # gpio.setup(37,)
 
 def send():
+    global old_time
+    
     new_time = time.time()
     delta = new_time - old_time
 
@@ -59,6 +67,9 @@ def send():
     trigger_2_left = 0.0
     trigger_2_right = 0.0
     c2joy1y = 0.0
+    button_2_x = False
+    button_2_b = False
+    button_2_y = False
 
     for arg in all_args:
         #print all the keys then : then the values
@@ -76,7 +87,7 @@ def send():
             trigger = round(float(all_args[arg]), 3)
         if arg == "axis-1-1": #C2 Left Joystick, y axis
             c2joy1y = round(float(all_args[arg]), 3)
-        if arg == "axis-2-1":
+        if arg == "axis-4-1":
             trigger_2_left = round(float(all_args[arg]), 3)
         if arg == "axis-5-1":
             trigger_2_right = round(float(all_args[arg]), 3)
@@ -84,6 +95,12 @@ def send():
             bumper_left = (all_args[arg] == "True")
         if arg == "button-5-0": #C1 Right bumper
             bumper_right = (all_args[arg] == "True")
+        if arg == "button-1-1":
+            button_2_b = (all_args[arg] == "True")
+        if arg == "button-2-1":
+            button_2_x = (all_args[arg] == "True")
+        if arg == "button-3-1":
+            button_2_y = (all_args[arg] == "True")
         if arg == "button-4-1": #C2 Left bumper
             bumper_2_left = (all_args[arg] == "True")
         if arg == "button-5-1": #C2 Right bumper
@@ -99,6 +116,9 @@ def send():
         drive_percent = 5
     if bumper_right:
         drive_percent = 60
+
+    print("joy1x" + str(joy1x))
+    print("joy1y" + str(joy1y))
     
     thrust_left = min(1, max(-1, joy1y + joy1x)) * drive_percent
     thrust_right = min(1, max(-1, joy1y - joy1x)) * drive_percent
@@ -107,6 +127,7 @@ def send():
     #print(str(joy1x) + ", " + str(joy1y))
 
     #Drive thrusters
+    print("thrust_left: "+str(thrust_left)+"\nthrust_right: "+str(thrust_right))
     set_thruster_speed(0, thrust_left)
     set_thruster_speed(1, thrust_right)
     set_thruster_speed(2, thrust_up)
@@ -122,19 +143,26 @@ def send():
 
     #Pitch arm
     if c2joy1y > 0.1:
-        arm_pitch_motor.forward(c2joy1y)
+        arm_pitch_motor.backward(c2joy1y)
     elif c2joy1y < 0.1:
-        arm_pitch_motor.backward(abs(c2joy1y))
+        arm_pitch_motor.forward(abs(c2joy1y))
     else:
         arm_pitch_motor.stop()
 
     
     #Open/Close Hand
     if trigger_2_left > -1:
-        move_servo(4, -30 * ((trigger_2_left * 0.5) + 0.5), 0, 180, delta)
+        move_servo(servo_channel, -hand_speed * ((trigger_2_left * 0.5) + 0.5), closed_angle, open_angle, delta)
 
-    if trigger_2_right > -1:
-        move_servo(4, 30 * ((trigger_2_left * 0.5) + 0.5), 0, 180, delta)
+    elif trigger_2_right > -1:
+        move_servo(servo_channel, hand_speed * ((trigger_2_right * 0.5) + 0.5), closed_angle, open_angle, delta)
+
+    elif button_2_b:
+        kit.servo[servo_channel].angle = open_angle
+    elif button_2_x:
+        kit.servo[servo_channel].angle = closed_angle
+    elif button_2_y:
+        kit.servo[servo_channel].angle = semi_angle
 
     return all_args
 def deadzone(x,y,length):
@@ -150,7 +178,9 @@ def set_thruster_speed(thruster, speed):
     pca.channels[thruster].duty_cycle = int((13.107 * capped_speed) + 4915.125)
 
 def move_servo(channel, value, low, high, delta):
+    print("Moving Servo!!!")
     clamped = min(high, max(kit.servo[channel].angle + (value * delta), low))
+    print(clamped)
     kit.servo[channel].angle = clamped
 
 

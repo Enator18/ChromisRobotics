@@ -134,10 +134,9 @@ if __name__ == "__main__":
                     running = False
                     pygame.quit()
                     exit()
-        if config != config_old:
-            config = sort_dict(config)
-            send_signals()
-            config_old = config.copy()
+        config = sort_dict(config)
+        send_signals()
+        config_old = config.copy()
         # handle_input()
         clock.tick(30)
                 
