@@ -1,11 +1,19 @@
 global signals
 global signal_pairs
 global screen
-chromis_teal = (0, 200, 180)
-shark_attack = (100, 15, 10)
-black = (0,0,0)
-white = (255,255,255)
-purple = (80,15,130)
+CHROMIS_TEAL = (0, 200, 180)
+SHARK_ATTACK = (100, 15, 10)
+BLACK = (0,0,0)
+WHITE = (255,255,255)
+PURPLE = (80,15,130)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+color = CHROMIS_TEAL
+
+DEFAULT = 0
+RECORDING = 1
+PLAYBACK = 2
+
 if __name__ == "__main__":
     import serial
     import requests
@@ -66,6 +74,8 @@ if __name__ == "__main__":
         global signals
         signals = []
     def send_signals():
+        global color
+
         if wifi:
             query = {str(i):config[i] for i in config.keys()}
             #turn it into a url
@@ -73,7 +83,17 @@ if __name__ == "__main__":
             #check if we get an error
             try:
                 #build the whole url
-                r = requests.get("http://" + rovIP + ":5000" + "/?" + query)
+                state = requests.get("http://" + rovIP + ":5000" + "/?" + query)
+                if state == DEFAULT:
+                    color = CHROMIS_TEAL
+                elif state == RECORDING:
+                    color = RED
+                elif state == PLAYBACK:
+                    color = GREEN
+                else:
+                    color = PURPLE # If you see purple, something very strange has happened
+# future members, if you find yourselves wondering what purple means, figure it out and please let us know
+
                 #we sent the signals, ready to accept new ones
                 # signals = []
             except Exception as e:
@@ -103,7 +123,7 @@ if __name__ == "__main__":
             send_signals()
     while running:
         # 0, 200, 180: Chromis Teal
-        screen.fill(chromis_teal)
+        screen.fill(color)
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
@@ -135,10 +155,12 @@ if __name__ == "__main__":
                     pygame.quit()
                     exit()
         config = sort_dict(config)
-        send_signals()
+        
+        if (config != config_old):
+            send_signals()
         config_old = config.copy()
         # handle_input()
-        clock.tick(30)
+        clock.tick(32)
                 
 
 

@@ -3,6 +3,7 @@ import flask
 import serial
 import os
 import time
+from threading import Thread
 from adafruit_pca9685 import PCA9685
 import busio
 from board import SCL, SDA
@@ -18,16 +19,34 @@ i2c_bus = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c_bus)
 pca.frequency = 50
 
-drive_speed = 25
+drive_speed = 40
+up_speed = 60
+down_speed = 40
 hand_speed = 30
+crawl_speed = 5
+sprint_speed = 80
+
 open_angle = 95 #Engineers - FIX THIS
 closed_angle = 60
 semi_angle = 80
 servo_channel = 6
 
-global old_time
-
 old_time = -1
+
+DEFAULT = 0
+RECORDING = 1
+PLAYBACK = 2
+
+state = DEFAULT
+
+recorded_inputs = []
+
+stop_playback = False
+
+playback_thread = None
+servo_loop_thread = None
+
+servo_speed = 0
 
 
 app = flask.Flask("RobotServer")
@@ -37,6 +56,8 @@ app = flask.Flask("RobotServer")
 
 def send():
     global old_time
+    global recorded_inputs
+    global stop_playback
     
     new_time = time.time()
     delta = new_time - old_time
@@ -52,6 +73,57 @@ def send():
     all_args = flask.request.args.to_dict()
     time.sleep(0.1)
 
+    all_args["delta"] = delta
+
+    #Stop Echo Button
+    if all_args["button-2-0"] and all_args["button-2-0"] == "True":
+        state = DEFAULT
+        stop_playback = True
+        if playback_thread:
+            playback_thread.join()
+
+    #Record Button
+    elif all_args["button-1-0"] and all_args["button-1-0"] == "True" and state == DEFAULT:
+        state = RECORDING
+        recorded_inputs = {}
+
+    #Start Playback Button
+    elif all_args["button-3-0"] and all_args["button-3-0"] == "True" and state != PLAYBACK:
+        stop_playback = False
+        state = PLAYBACK
+        playback_thread = Thread(target=playback,args=())
+        playback_thread.start()
+        #Start Playback Thread
+
+    if state == RECORDING:
+        recorded_inputs.append(all_args)
+    
+    if state != PLAYBACK:
+        update(all_args)
+    #Must return something, doesn't matter what
+    return state
+
+def servo_loop():
+    current_time = time.time()
+    while True:
+        delta = time.time() - current_time
+        current_time = time.time()
+        servo_thread = Thread(target=move_servo, args=(servo_channel, servo_speed, closed_angle, open_angle, delta))
+        servo_thread.start()
+        time.sleep(0.03125)
+        servo_thread.join()
+
+
+def playback():
+    for args in recorded_inputs:
+        if stop_playback:
+            return
+        time.sleep(args["delta"])
+        update(args)
+
+def update(all_args):
+    global servo_speed
+    delta = all_args["delta"]
     #Controller 1
     joy1x = 0
     joy1y = 0
@@ -67,6 +139,7 @@ def send():
     trigger_2_left = 0.0
     trigger_2_right = 0.0
     c2joy1y = 0.0
+
     button_2_x = False
     button_2_b = False
     button_2_y = False
@@ -110,21 +183,21 @@ def send():
     #Trick with tuples: a,b = value to set for a, value to set for b
     joy1x,joy1y = deadzone(joy1x,joy1y,0.1)
     joy2x,joy2y = deadzone(joy2x,joy2y,0.1)
-    #must return something, doesn't really matter what
-    drive_percent = drive_speed * ((trigger * 0.5) + 1.5)
+    
+    #Set Thruster Speeds
+    drive_percent = drive_speed * ((trigger * 0.25) + 1.25)
     if bumper_left:
-        drive_percent = 5
-    if bumper_right:
-        drive_percent = 60
-
-    print("joy1x" + str(joy1x))
-    print("joy1y" + str(joy1y))
+        drive_percent = crawl_speed
+    elif bumper_right:
+        drive_percent = sprint_speed
     
     thrust_left = min(1, max(-1, joy1y + joy1x)) * drive_percent
     thrust_right = min(1, max(-1, joy1y - joy1x)) * drive_percent
-    thrust_up = joy2y * drive_speed
 
-    #print(str(joy1x) + ", " + str(joy1y))
+    if (joy2y >= 0):
+        thrust_up = joy2y * up_speed
+    else:
+        thrust_up = joy2y * down_speed
 
     #Drive thrusters
     print("thrust_left: "+str(thrust_left)+"\nthrust_right: "+str(thrust_right))
@@ -151,20 +224,27 @@ def send():
 
     
     #Open/Close Hand
-    if trigger_2_left > -1:
+    if button_2_b:
+        kit.servo[servo_channel].angle = open_angle
+        servo_speed = 0
+    elif button_2_x:
+        kit.servo[servo_channel].angle = closed_angle
+        servo_speed = 0
+    elif button_2_y:
+        kit.servo[servo_channel].angle = semi_angle
+        servo_speed = 0
+    elif trigger_2_left > -1:
         move_servo(servo_channel, -hand_speed * ((trigger_2_left * 0.5) + 0.5), closed_angle, open_angle, delta)
+        servo_speed = -hand_speed * ((trigger_2_left * 0.5) + 0.5)
 
     elif trigger_2_right > -1:
         move_servo(servo_channel, hand_speed * ((trigger_2_right * 0.5) + 0.5), closed_angle, open_angle, delta)
+        servo_speed = hand_speed * ((trigger_2_right * 0.5) + 0.5)
+    else:
+        servo_speed = 0
 
-    elif button_2_b:
-        kit.servo[servo_channel].angle = open_angle
-    elif button_2_x:
-        kit.servo[servo_channel].angle = closed_angle
-    elif button_2_y:
-        kit.servo[servo_channel].angle = semi_angle
+    
 
-    return all_args
 def deadzone(x,y,length):
     dist = math.sqrt((x*x) + (y*y))
     if(dist<length):
@@ -186,6 +266,10 @@ def move_servo(channel, value, low, high, delta):
 
 
 if __name__ == "__main__":
+
+    servo_loop_thread = Thread(target=servo_loop, args=())
+    servo_loop_thread.start()
+
     for n in range(4):
         pca.channels[n].duty_cycle = 4915
     time.sleep(7)
