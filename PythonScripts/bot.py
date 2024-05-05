@@ -121,7 +121,8 @@ def playback():
         if stop_playback:
             return
         time.sleep(args["delta"])
-        update(args)
+        update_thread = Thread(target=update,args=(args))
+        update_thread.start()
 
 def update(all_args):
     global servo_speed

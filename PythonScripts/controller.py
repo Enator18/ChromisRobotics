@@ -95,8 +95,8 @@ if __name__ == "__main__":
                 elif state == PLAYBACK:
                     color = GREEN
                 else:
-                    color = PURPLE # If you see purple, something very strange has happened
-# future members, if you find yourselves wondering what purple means, figure it out and please let us know
+                    color = PURPLE # If you see purple, something very strange has happened (An invalid state was returned by the bot)
+
 
                 #we sent the signals, ready to accept new ones
                 # signals = []
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         else:
             print_dict(config)
 
-    #I'm not actually sure what these functions do or what they are for except print_dict
+    #I'm not actually sure what these functions do or what they are for
     def get_signals():
         print_signals()
         return input()
@@ -132,7 +132,6 @@ if __name__ == "__main__":
 
     #Main Loop
     while running:
-        # 0, 200, 180: Chromis Teal
         screen.fill(color)
         pygame.display.flip()
         
