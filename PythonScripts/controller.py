@@ -61,7 +61,7 @@ if __name__ == "__main__":
     }
     config = {}
     config_old = {}
-    
+    #Sort dictionary of inputs.
     def sort_dict(dictionary):
         keys = [key for key in dictionary.keys()]
         if len(keys) > 0:
@@ -70,9 +70,13 @@ if __name__ == "__main__":
             return new_dict
         else:
             return {}
+        
+    #Clear input array
     def clear_arr():
         global signals
         signals = []
+
+    #Send inputs to bot
     def send_signals():
         global color
 
@@ -100,6 +104,8 @@ if __name__ == "__main__":
                 print(str(e))
         else:
             print_dict(config)
+
+    #I'm not actually sure what these functions do or what they are for except print_dict
     def get_signals():
         print_signals()
         return input()
@@ -108,10 +114,6 @@ if __name__ == "__main__":
         for i in signal_pairs.keys():
             print(str(i)+":"+signal_pairs[i])
         print("Or send to send")
-    def print_dict(dictionary):
-        os.system('cls')
-        for key in dictionary.keys():
-            print(str(key)+":"+str(dictionary[key]))
     def add(signal):
         signals.append(signal)
     def handle_input():
@@ -121,11 +123,22 @@ if __name__ == "__main__":
             typed = get_signals()
         else:
             send_signals()
+
+    #Print inputs for debug mode
+    def print_dict(dictionary):
+        os.system('cls')
+        for key in dictionary.keys():
+            print(str(key)+":"+str(dictionary[key]))
+
+    #Main Loop
     while running:
         # 0, 200, 180: Chromis Teal
         screen.fill(color)
         pygame.display.flip()
+        
+        #Iterate through recieved inputs
         for event in pygame.event.get():
+            #Bind unbound controllers
             if event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
                 if bindings[event.instance_id] == -1:
                     if event.type == pygame.JOYBUTTONDOWN:
@@ -135,12 +148,15 @@ if __name__ == "__main__":
                             bindings[event.instance_id] = 1
                 else:
                     gamepad_id = bindings[event.instance_id]
-                
+
+                    #Rebind bound controllers
                     if event.type == pygame.JOYBUTTONDOWN:
                         if event.button == 6:
                             bindings[event.instance_id] = 0
                         elif event.button == 7:
                             bindings[event.instance_id] = 1
+
+                        #Serialize inputs
                         gamepad_id = bindings[event.instance_id]
                         config["button-"+str(event.button)+"-"+str(gamepad_id)] = True
                     elif event.type == pygame.JOYBUTTONUP:
@@ -150,10 +166,13 @@ if __name__ == "__main__":
                     elif event.type == pygame.JOYHATMOTION:
                         config["hat-"+str(event.hat)+"-"+str(gamepad_id)] = event.value
 
+            #Detect when the window is closed
             elif event.type == pygame.QUIT:
                     running = False
                     pygame.quit()
                     exit()
+
+        #Send inputs
         config = sort_dict(config)
         
         if (config != config_old):
@@ -161,15 +180,4 @@ if __name__ == "__main__":
         config_old = config.copy()
         # handle_input()
         clock.tick(32)
-                
 
-
-    #ctrl.init()
-    #ctrl.Joystick(0).init()
-    #while(ctrl.Joystick(0).get_button(3)==0.0):
-    #    pass
-    #print(ctrl.Joystick(0).get_button(0))
-
-
-    print("__main__")
-    #make a dictionary containing all the signals recieved, and what they should do

@@ -68,14 +68,14 @@ def send():
     old_time = new_time
 
 
-    #turn the url queries into a dictionary
+    #Turn the url queries into a dictionary.
     os.system('clear')
     all_args = flask.request.args.to_dict()
     time.sleep(0.1)
 
     all_args["delta"] = delta
 
-    #Stop Echo Button
+    #Stop Record/Playback Button
     if all_args["button-2-0"] and all_args["button-2-0"] == "True":
         state = DEFAULT
         stop_playback = True
@@ -89,18 +89,20 @@ def send():
 
     #Start Playback Button
     elif all_args["button-3-0"] and all_args["button-3-0"] == "True" and state != PLAYBACK:
-        stop_playback = False
         state = PLAYBACK
+        stop_playback = False
         playback_thread = Thread(target=playback,args=())
         playback_thread.start()
         #Start Playback Thread
 
+    #Record inputs if in recording mode.
     if state == RECORDING:
         recorded_inputs.append(all_args)
     
+    #If not in autonomous mode, update using pilot inputs.
     if state != PLAYBACK:
         update(all_args)
-    #Must return something, doesn't matter what
+
     return state
 
 def servo_loop():
@@ -139,11 +141,11 @@ def update(all_args):
     trigger_2_left = 0.0
     trigger_2_right = 0.0
     c2joy1y = 0.0
-
     button_2_x = False
     button_2_b = False
     button_2_y = False
 
+    #Read inputs from the dictionary.
     for arg in all_args:
         #print all the keys then : then the values
         print(arg,":",all_args[arg])
