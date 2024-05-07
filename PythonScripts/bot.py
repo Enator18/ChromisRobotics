@@ -58,6 +58,7 @@ def send():
     global old_time
     global recorded_inputs
     global stop_playback
+    global state
     
     new_time = time.time()
     delta = new_time - old_time
@@ -75,20 +76,20 @@ def send():
 
     all_args["delta"] = delta
 
-    #Stop Record/Playback Button
-    if all_args["button-2-0"] and all_args["button-2-0"] == "True":
+    #Stop Record/Playback Button (X)
+    if "button-2-0" in all_args and all_args["button-2-0"] == "True":
         state = DEFAULT
         stop_playback = True
-        if playback_thread:
+        if not playback_thread is None:
             playback_thread.join()
 
-    #Record Button
-    elif all_args["button-1-0"] and all_args["button-1-0"] == "True" and state == DEFAULT:
+    #Record Button (B)
+    elif "button-1-0" in all_args and all_args["button-1-0"] == "True" and state == DEFAULT:
         state = RECORDING
-        recorded_inputs = {}
+        recorded_inputs = []
 
-    #Start Playback Button
-    elif all_args["button-3-0"] and all_args["button-3-0"] == "True" and state != PLAYBACK:
+    #Start Playback Button (Y)
+    elif "button-3-0" in all_args and all_args["button-3-0"] == "True" and state != PLAYBACK:
         state = PLAYBACK
         stop_playback = False
         playback_thread = Thread(target=playback,args=())
@@ -103,7 +104,7 @@ def send():
     if state != PLAYBACK:
         update(all_args)
 
-    return state
+    return str(state)
 
 def servo_loop():
     current_time = time.time()
@@ -121,7 +122,7 @@ def playback():
         if stop_playback:
             return
         time.sleep(args["delta"])
-        update_thread = Thread(target=update,args=(args))
+        update_thread = Thread(target=update,args=(args,))
         update_thread.start()
 
 def update(all_args):
@@ -261,9 +262,9 @@ def set_thruster_speed(thruster, speed):
     pca.channels[thruster].duty_cycle = int((13.107 * capped_speed) + 4915.125)
 
 def move_servo(channel, value, low, high, delta):
-    print("Moving Servo!!!")
+    #print("Moving Servo!!!")
     clamped = min(high, max(kit.servo[channel].angle + (value * delta), low))
-    print(clamped)
+    #print(clamped)
     kit.servo[channel].angle = clamped
 
 

@@ -15,19 +15,21 @@ RECORDING = 1
 PLAYBACK = 2
 
 if __name__ == "__main__":
-    import serial
     import requests
     import urllib.parse
     import pygame
     import pygame.joystick as ctrl
     import os
+    
+    #Allow for controller inputs to be recieved while the window is not in focus.
+    os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
     pygame.init()
     screen = pygame.display.set_mode((500, 700))
     pygame.display.set_caption("ROV Control")
     pygame.display.init()
     clock = pygame.time.Clock()
-    wifi = False
+    wifi = True
 
     #Which controller does what
     bindings = [-1, -1]
@@ -87,7 +89,11 @@ if __name__ == "__main__":
             #check if we get an error
             try:
                 #build the whole url
-                state = requests.get("http://" + rovIP + ":5000" + "/?" + query)
+                r = requests.get("http://" + rovIP + ":5000" + "/?" + query)
+
+                state = int(r.text)
+
+                print(state)
                 if state == DEFAULT:
                     color = CHROMIS_TEAL
                 elif state == RECORDING:
@@ -95,7 +101,9 @@ if __name__ == "__main__":
                 elif state == PLAYBACK:
                     color = GREEN
                 else:
-                    color = PURPLE # If you see purple, something very strange has happened (An invalid state was returned by the bot)
+                    color = PURPLE # If you see purple, something very strange has happened (An invalid state was returned by the bot, likely indicating that the webserver returned an error)
+
+                    print(r.text) #Print server error message
 
 
                 #we sent the signals, ready to accept new ones
