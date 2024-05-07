@@ -118,10 +118,14 @@ def servo_loop():
 
 
 def playback():
+    update_thread = None
+
     for args in recorded_inputs:
         if stop_playback:
             return
         time.sleep(args["delta"])
+        if not update_thread is None:
+            update_thread.join()
         update_thread = Thread(target=update,args=(args,))
         update_thread.start()
 
