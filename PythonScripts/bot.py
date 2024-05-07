@@ -1,6 +1,5 @@
 #from flask import Flask, jsonify, request, render_template
 import flask
-import serial
 import os
 import time
 from threading import Thread
